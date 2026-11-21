@@ -1,0 +1,48 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { applicationSchema, enquirySchema } from '../src/utils/schemas.js';
+import { makeDedupeKey } from '../src/utils/dedupe-key.js';
+
+test('enquiry validation accepts the existing website form payload', () => {
+  const parsed = enquirySchema.safeParse({
+    name: 'A. Visitor',
+    email: 'VISITOR@example.com',
+    phone: '',
+    company: '',
+    service: 'Custom Software',
+    message: 'We need a workflow application for our staff.'
+  });
+  assert.equal(parsed.success, true);
+  assert.equal(parsed.data.email, 'visitor@example.com');
+});
+
+test('enquiry validation requires a meaningful description', () => {
+  const parsed = enquirySchema.safeParse({
+    name: 'A. Visitor',
+    email: 'visitor@example.com',
+    service: 'Custom Software',
+    message: 'short'
+  });
+  assert.equal(parsed.success, false);
+});
+
+test('career application accepts the website payload and requires its database name field', () => {
+  const parsed = applicationSchema.safeParse({
+    role: 'General interest',
+    applicant_name: 'A. Applicant',
+    email: 'person@example.com',
+    website: ''
+  });
+  assert.equal(parsed.success, true);
+  assert.equal(parsed.data.applicant_name, 'A. Applicant');
+
+  const missingName = applicationSchema.safeParse({ role: 'General interest', email: 'person@example.com' });
+  assert.equal(missingName.success, false);
+});
+
+test('duplicate keys are stable for equivalent normalized submissions', () => {
+  const first = makeDedupeKey({ email: 'PERSON@example.com', message: 'Hello' });
+  const second = makeDedupeKey({ message: ' hello ', email: 'person@example.com' });
+  assert.equal(first, second);
+  assert.notEqual(first, makeDedupeKey({ email: 'person@example.com', message: 'Different message' }));
+});
