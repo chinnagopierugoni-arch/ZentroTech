@@ -59,9 +59,21 @@ router.post('/enquiries', writeLimiter, honeypot, validateBody(enquirySchema), a
     email: form.email,
     phone: form.phone || null,
     company: form.company || null,
+    industry: form.industry || null,
     service: form.service,
     budget: form.budget || null,
-    message: form.message || form.description
+    message: form.message || form.description,
+    selected_product: form.selectedProduct || null,
+    selected_package: form.selectedPackage || null,
+    requirements: Object.fromEntries([
+      ['institution_type', form.institutionType],
+      ['student_count', form.studentCount],
+      ['current_lms_status', form.currentLmsStatus],
+      ['current_crm_status', form.currentCrmStatus],
+      ['required_features', form.requiredFeatures],
+      ['deployment_timeline', form.deploymentTimeline],
+      ['additional_requirements', form.additionalRequirements]
+    ].filter(([, value]) => value))
   }).select('id, status, created_at').single();
 
   const record = requireInsertedRecord(req, data, error, 'project_enquiries', 'Unable to save your project enquiry.');

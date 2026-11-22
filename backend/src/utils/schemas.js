@@ -14,6 +14,15 @@ export const enquirySchema = z.object({
   budget: optionalText(80),
   message: z.string().trim().min(10).max(5000).optional(),
   description: z.string().trim().min(10).max(5000).optional(),
+  selectedProduct: optionalText(160),
+  selectedPackage: z.enum(['Starter', 'Professional', 'Enterprise']).optional().or(z.literal('')),
+  institutionType: optionalText(120),
+  studentCount: optionalText(80),
+  currentLmsStatus: optionalText(160),
+  currentCrmStatus: optionalText(160),
+  requiredFeatures: optionalText(5000),
+  deploymentTimeline: optionalText(160),
+  additionalRequirements: optionalText(5000),
   website: optionalText(200)
 }).refine(value => Boolean(value.message || value.description), {
   path: ['message'],

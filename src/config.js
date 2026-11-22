@@ -25,7 +25,8 @@ export const industries = [
   { title: 'Retail & Commerce', description: 'Digital storefronts, ordering experiences and customer engagement platforms.', icon: 'ShoppingBag' },
   { title: 'Logistics & Distribution', description: 'Smarter order flows, stock visibility and operational coordination.', icon: 'Truck' },
   { title: 'Startups & SaaS', description: 'From first prototype to scalable product, build with a focused engineering partner.', icon: 'Rocket' },
-  { title: 'Professional Services', description: 'Purpose-built tools that simplify service delivery, reporting and client management.', icon: 'BriefcaseBusiness' }
+  { title: 'Professional Services', description: 'Purpose-built tools that simplify service delivery, reporting and client management.', icon: 'BriefcaseBusiness' },
+  { title: 'Education & EdTech', description: 'We empower educational organisations with connected learning platforms, student management systems, admission automation, digital classrooms, and intelligent education technology.', icon: 'GraduationCap' }
 ];
 
 export const projects = [

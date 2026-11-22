@@ -27,11 +27,22 @@ Successful responses use `{ "data": ... }` unless the status is `204`. Errors us
   "industry": "Healthcare",
   "service": "Custom Software",
   "budget": "10k-25k",
-  "message": "We need a secure workflow platform for our team."
+  "message": "We need a workflow platform for our team.",
+  "selectedProduct": "Zentro EduCore",
+  "selectedPackage": "Professional",
+  "institutionType": "Training institute",
+  "studentCount": "500-2,000",
+  "currentLmsStatus": "Using a third-party LMS",
+  "currentCrmStatus": "No CRM yet",
+  "requiredFeatures": "Admissions workflow and custom reports",
+  "deploymentTimeline": "1-3 months",
+  "additionalRequirements": "Discuss a custom learner domain."
 }
 ```
 
-The API inserts into the existing `project_enquiries` table, mapping `name` to `full_name` and `message` (or `description`) to `message`. Required: `name`, valid `email`, `service`, and a 10–5000 character message. `budget`, `phone`, and `company` are optional. The table supplies the `id`, `status`, and `created_at`; the API only returns success when Supabase returns that inserted record. The current table has no `industry` column, so the submitted industry value is not persisted. Public submissions are rate limited.
+The API inserts into `project_enquiries`, mapping `name` to `full_name` and `message` (or `description`) to `message`. Required: `name`, valid `email`, `service`, and a 10–5000 character message. `budget`, `phone`, `company`, and `industry` are optional. EduCore enquiries can additionally include `selectedProduct`, `selectedPackage`, and the optional organisation requirements shown above. Selected product and package are stored in dedicated columns; the remaining EduCore requirements are stored as a JSON object. The package is limited to `Starter`, `Professional`, or `Enterprise`. The table supplies the `id`, `status`, and `created_at`; the API only returns success when Supabase returns that inserted record. Public submissions are rate limited.
+
+Apply `supabase/migrations/202611220001_educore_enquiry_details.sql` to an existing Supabase project before deploying the updated backend. It adds the enquiry metadata columns while preserving existing records and endpoints.
 
 ### Contact
 

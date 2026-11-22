@@ -1,18 +1,20 @@
 import React, { useState } from 'react';
-import { Routes, Route, Link, NavLink, useLocation } from 'react-router-dom';
+import { Routes, Route, Link, NavLink, useLocation, useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowRight, ArrowUpRight, Menu, X, Code2, BrainCircuit, PanelsTopLeft,
   Workflow, Cloud, HeartPulse, Factory, ShoppingBag, Truck, Rocket,
   BriefcaseBusiness, Check, Plus, Minus, ChevronDown, Mail, Phone,
   MapPin, Linkedin, Instagram, Github, Sparkles, ShieldCheck, Zap,
-  Globe2, Layers3, Target, Send, Clock3, MessageCircle, Building2, PlayCircle
+  Globe2, Layers3, Target, Send, Clock3, MessageCircle, Building2, PlayCircle,
+  GraduationCap, BookOpen, Users, BarChart3, CalendarDays, Bell, Search, Settings2
 } from 'lucide-react';
 import { company, services, industries, projects } from './config';
 import { submitEnquiry } from './enquiry';
 import { api } from './services/api';
+import { zentroProducts, demoProducts } from './products';
 
-const iconMap = { Code2, BrainCircuit, PanelsTopLeft, Workflow, Cloud, HeartPulse, Factory, ShoppingBag, Truck, Rocket, BriefcaseBusiness };
+const iconMap = { Code2, BrainCircuit, PanelsTopLeft, Workflow, Cloud, HeartPulse, Factory, ShoppingBag, Truck, Rocket, BriefcaseBusiness, GraduationCap };
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
@@ -309,7 +311,7 @@ function Careers() {
         <h3>Open to conversations</h3>
         <p>We are building our team and welcome thoughtful introductions from developers, designers, product thinkers and technology enthusiasts.</p>
         <form onSubmit={handleApplication}>
-          <div className="honeypot-field" aria-hidden="true"><input name="submission_marker" tabIndex="-1" autoComplete="off"/></div>
+          <div className="honeypot-field" aria-hidden="true"><input name="submission_marker" tabIndex="-1" autoComplete="off" value="" readOnly/></div>
           <label htmlFor="career-role">Area of interest</label>
           <select id="career-role" value={role} onChange={e=>setRole(e.target.value)}>
             <option value="General interest">General interest</option><option value="Frontend development">Frontend development</option><option value="Backend development">Backend development</option><option value="AI / Machine Learning">AI / Machine Learning</option><option value="UI/UX design">UI/UX design</option><option value="Sales & business development">Sales & business development</option>
@@ -330,18 +332,50 @@ function Careers() {
 }
 
 function Contact() {
-  const emptyForm = {name:'',email:'',phone:'',company:'',industry:'',service:'Custom Software',budget:'',message:''};
-  const [form,setForm] = useState(emptyForm);
+  const [searchParams] = useSearchParams();
+  const requestedProductName = searchParams.get('product') || '';
+  const requestedProduct = zentroProducts.find(product => product.name === requestedProductName);
+  const isEduCoreEnquiry = requestedProductName === 'Zentro EduCore';
+  const packageCandidate = searchParams.get('package') || '';
+  const requestedPackage = ['Starter','Professional','Enterprise'].includes(packageCandidate) ? packageCandidate : '';
+  const eduCoreService = 'White-label LMS & CRM — Zentro EduCore';
+  const defaultIndustry = isEduCoreEnquiry ? 'Education & EdTech'
+    : requestedProduct?.category === 'Healthcare Technology' ? 'Healthcare'
+    : requestedProduct?.category === 'Enterprise Software' ? 'Manufacturing'
+    : requestedProduct?.category === 'Human Resource Technology' ? 'Professional Services'
+    : requestedProduct?.category === 'Education Technology' ? 'Education & EdTech'
+    : '';
+  const emptyForm = {
+    name:'',email:'',phone:'',company:'',industry:'',service:'Custom Software',budget:'',message:'',
+    selectedProduct:'',selectedPackage:'',institutionType:'',studentCount:'',
+    currentLmsStatus:'',currentCrmStatus:'',requiredFeatures:'',deploymentTimeline:'',
+    additionalRequirements:''
+  };
+  const [form,setForm] = useState(() => ({
+    ...emptyForm,
+    service: isEduCoreEnquiry ? eduCoreService : (requestedProductName || emptyForm.service),
+    industry: defaultIndustry,
+    message: isEduCoreEnquiry ? 'I would like to discuss Zentro EduCore for our institution.' : '',
+    selectedProduct: requestedProductName,
+    selectedPackage: isEduCoreEnquiry ? requestedPackage : ''
+  }));
   const [status,setStatus] = useState('idle');
   const [notice,setNotice] = useState('');
   const update = e => setForm({...form,[e.target.name]:e.target.value});
   async function handleSubmit(e) {
     e.preventDefault(); setStatus('sending'); setNotice('');
     try {
-      const result = await submitEnquiry({ ...form, website: e.currentTarget.elements.submission_marker.value });
+      await submitEnquiry({ ...form, website: e.currentTarget.elements.submission_marker.value });
       setStatus('success');
-      setNotice(result.mode === 'email' ? 'Your email app should open with the enquiry prefilled. Send the email to complete your enquiry.' : 'Thank you. Your enquiry has been submitted successfully. Our team will get back to you.');
-      if (result.mode !== 'email') setForm(emptyForm);
+      setNotice('Thank you. Your enquiry has been saved successfully. Our team will get back to you.');
+      setForm({
+        ...emptyForm,
+        service: isEduCoreEnquiry ? eduCoreService : (requestedProductName || emptyForm.service),
+        industry: defaultIndustry,
+        message: isEduCoreEnquiry ? 'I would like to discuss Zentro EduCore for our institution.' : '',
+        selectedProduct: requestedProductName,
+        selectedPackage: isEduCoreEnquiry ? requestedPackage : ''
+      });
     } catch (err) { setStatus('error'); setNotice(err.message || 'Something went wrong. Please try again.'); }
   }
   return <>
@@ -349,11 +383,23 @@ function Contact() {
     <section className="section section-light"><div className="container contact-grid">
       <div className="contact-info"><SectionHeading eyebrow="Get in touch" title="Let's find the right way forward." text="Whether you have a clear brief or just an early idea, we're happy to listen and help you shape the next step."/><div className="contact-method"><span><Mail size={19}/></span><div><small>Email us</small><a href={`mailto:${company.email}`}>{company.email}</a></div></div><div className="contact-method"><span><Phone size={19}/></span><div><small>Call us</small><a href={`tel:${company.phone.replaceAll(' ','')}`}>{company.phone}</a></div></div><div className="contact-method"><span><MapPin size={19}/></span><div><small>Based in</small><b>{company.location}</b></div></div><div className="contact-promise"><ShieldCheck size={19}/><span>Your information is used only to respond to your enquiry. Please do not include sensitive patient or personal data.</span></div></div>
       <div className="contact-form-wrap"><div className="form-heading"><span>PROJECT ENQUIRY</span><small><i></i> Usually responds within 1–2 business days</small></div><form className="contact-form" onSubmit={handleSubmit}>
-        <div className="honeypot-field" aria-hidden="true"><input name="submission_marker" tabIndex="-1" autoComplete="off"/></div>
+        <div className="honeypot-field" aria-hidden="true"><input name="submission_marker" tabIndex="-1" autoComplete="off" value="" readOnly/></div>
         <div className="form-row"><div className="field"><label htmlFor="name">Your name *</label><input id="name" name="name" required value={form.name} onChange={update} placeholder="Full name"/></div><div className="field"><label htmlFor="email">Work email *</label><input id="email" name="email" type="email" required value={form.email} onChange={update} placeholder="you@company.com"/></div></div>
-        <div className="form-row"><div className="field"><label htmlFor="phone">Phone number</label><input id="phone" name="phone" value={form.phone} onChange={update} placeholder="+91"/></div><div className="field"><label htmlFor="company">Company</label><input id="company" name="company" value={form.company} onChange={update} placeholder="Company name"/></div></div>
-        <div className="form-row"><div className="field"><label htmlFor="industry">Industry</label><select id="industry" name="industry" value={form.industry} onChange={update}><option value="">Select an industry</option><option>Healthcare</option><option>Manufacturing</option><option>Retail & Commerce</option><option>Logistics & Distribution</option><option>Startups & SaaS</option><option>Professional Services</option><option>Other</option></select></div><div className="field"><label htmlFor="budget">Project budget</label><input id="budget" name="budget" value={form.budget} onChange={update} placeholder="Flexible / to be discussed"/></div></div>
-        <div className="field"><label htmlFor="service">What can we help with? *</label><select id="service" name="service" value={form.service} onChange={update}><option>Custom Software</option><option>AI & Machine Learning</option><option>Web & Mobile Applications</option><option>Business Automation / ERP</option><option>Healthcare Technology</option><option>Cloud & DevOps</option><option>UI/UX & Product Design</option><option>Other</option></select></div>
+        <div className="form-row"><div className="field"><label htmlFor="phone">Phone number</label><input id="phone" name="phone" value={form.phone} onChange={update} placeholder="+91"/></div><div className="field"><label htmlFor="company">{isEduCoreEnquiry ? 'Company / Institution' : 'Company'}</label><input id="company" name="company" value={form.company} onChange={update} placeholder={isEduCoreEnquiry ? 'Institution name' : 'Company name'}/></div></div>
+        <div className="form-row"><div className="field"><label htmlFor="industry">Industry</label><select id="industry" name="industry" value={form.industry} onChange={update}><option value="">Select an industry</option><option>Healthcare</option><option>Manufacturing</option><option>Retail & Commerce</option><option>Logistics & Distribution</option><option>Startups & SaaS</option><option>Professional Services</option><option>Education & EdTech</option><option>Other</option></select></div><div className="field"><label htmlFor="budget">Project budget</label><input id="budget" name="budget" value={form.budget} onChange={update} placeholder="Flexible / to be discussed"/></div></div>
+        <div className="field"><label htmlFor="service">What can we help with? *</label><select id="service" name="service" value={form.service} onChange={update}><option>Custom Software</option><option>AI & Machine Learning</option><option>Web & Mobile Applications</option><option>Business Automation / ERP</option><option>Healthcare Technology</option><option>Cloud & DevOps</option><option>UI/UX & Product Design</option><option>{eduCoreService}</option>{zentroProducts.map(product=><option key={product.id}>{product.name}</option>)}<option>Other</option></select></div>
+        {isEduCoreEnquiry && <>
+          <div className="form-row"><div className="field"><label htmlFor="institutionType">Institution type</label><select id="institutionType" name="institutionType" value={form.institutionType} onChange={update}><option value="">Select institution type</option><option>EdTech company</option><option>Training institute</option><option>Coaching centre</option><option>University / college</option><option>School</option><option>Other educational organisation</option></select></div><div className="field"><label htmlFor="studentCount">Number of students</label><select id="studentCount" name="studentCount" value={form.studentCount} onChange={update}><option value="">Select an approximate range</option><option>Under 500</option><option>500–2,000</option><option>2,001–10,000</option><option>10,001–50,000</option><option>Over 50,000</option><option>Not yet known</option></select></div></div>
+          <div className="form-row"><div className="field"><label htmlFor="currentLmsStatus">Current LMS status</label><select id="currentLmsStatus" name="currentLmsStatus" value={form.currentLmsStatus} onChange={update}><option value="">Select current LMS status</option><option>No LMS yet</option><option>Using a third-party LMS</option><option>Using an in-house LMS</option><option>Planning a replacement</option><option>Not sure</option></select></div><div className="field"><label htmlFor="currentCrmStatus">Current CRM status</label><select id="currentCrmStatus" name="currentCrmStatus" value={form.currentCrmStatus} onChange={update}><option value="">Select current CRM status</option><option>No CRM yet</option><option>Using a third-party CRM</option><option>Using an in-house CRM</option><option>Planning a replacement</option><option>Not sure</option></select></div></div>
+          <div className="form-row"><div className="field"><label htmlFor="selectedPackage">Required package</label><select id="selectedPackage" name="selectedPackage" value={form.selectedPackage} onChange={update}><option value="">Not sure yet</option><option>Starter</option><option>Professional</option><option>Enterprise</option></select></div><div className="field"><label htmlFor="deploymentTimeline">Expected deployment timeline</label><select id="deploymentTimeline" name="deploymentTimeline" value={form.deploymentTimeline} onChange={update}><option value="">Select a timeline</option><option>Within 1 month</option><option>1–3 months</option><option>3–6 months</option><option>More than 6 months</option><option>Exploring options</option></select></div></div>
+          <div className="field"><label htmlFor="requiredFeatures">Required custom features</label><textarea id="requiredFeatures" name="requiredFeatures" rows="3" value={form.requiredFeatures} onChange={update} placeholder="Modules, workflows, integrations, or reports you need"/></div>
+          <div className="field"><label htmlFor="additionalRequirements">Additional requirements</label><textarea id="additionalRequirements" name="additionalRequirements" rows="3" value={form.additionalRequirements} onChange={update} placeholder="Anything else our team should know?"/></div>
+        </>}
+        {requestedProduct && !isEduCoreEnquiry && <>
+          <div className="field"><label htmlFor="deploymentTimeline">Expected deployment timeline</label><select id="deploymentTimeline" name="deploymentTimeline" value={form.deploymentTimeline} onChange={update}><option value="">Select a timeline</option><option>Within 1 month</option><option>1–3 months</option><option>3–6 months</option><option>More than 6 months</option><option>Exploring options</option></select></div>
+          <div className="field"><label htmlFor="requiredFeatures">Required custom features</label><textarea id="requiredFeatures" name="requiredFeatures" rows="3" value={form.requiredFeatures} onChange={update} placeholder="Modules, workflows, integrations or reports you need"/></div>
+          <div className="field"><label htmlFor="additionalRequirements">Additional requirements</label><textarea id="additionalRequirements" name="additionalRequirements" rows="3" value={form.additionalRequirements} onChange={update} placeholder="Tell us about your organisation and expected rollout"/></div>
+        </>}
         <div className="field"><label htmlFor="message">Tell us about your project *</label><textarea id="message" name="message" required minLength="10" rows="5" value={form.message} onChange={update} placeholder="A little context about your goals, challenges or timeline..."/></div>
         <button className="button button-full" disabled={status==='sending'}>{status==='sending'?'Sending...':'Send enquiry'} <Send size={16}/></button>
         {notice && <div className={`form-notice ${status}`}>{notice}</div>}
@@ -362,17 +408,6 @@ function Contact() {
     </div></section>
   </>;
 }
-
-const demoProducts = [
-  { id:'hospital-management', name:'Hospital Management System', category:'Healthcare', description:'Manage patient registration, appointments, doctors, billing and day-to-day hospital operations.', features:['Patient registration','Appointment scheduling','Doctor dashboard','Billing & reports'], video:'/videos/hospital-management-demo.mp4' },
-  { id:'restaurant-management', name:'Restaurant Management System', category:'Food & Hospitality', description:'Connect menu management, table reservations, orders, kitchen workflows and customer enquiries.', features:['Digital menu','Table reservations','Order management','Kitchen workflow'] },
-  { id:'erp-management', name:'ERP Management System', category:'Enterprise', description:'Bring inventory, purchasing, sales, finance and operational reporting into one connected workspace.', features:['Inventory control','Purchase & sales','Finance workflows','Business reports'], video:'/videos/erp-management-demo.mp4' },
-  { id:'crm-software', name:'CRM Software', category:'Sales', description:'Track leads, customer conversations, follow-ups, opportunities and sales performance.', features:['Lead management','Follow-up reminders','Sales pipeline','Customer history'], video:'/videos/crm-demo.mp4' },
-  { id:'hr-payroll', name:'HR & Payroll Management', category:'Human Resources', description:'Simplify employee records, attendance, leave requests, payroll and HR reporting.', features:['Employee records','Attendance','Leave management','Payroll summaries'], video:'/videos/hr-payroll-demo.mp4' },
-  { id:'ecommerce-platform', name:'E-commerce Platform', category:'Digital Commerce', description:'Create a digital storefront with product catalogues, cart, order tracking and admin tools.', features:['Product catalogue','Shopping cart','Order tracking','Admin dashboard'] },
-  { id:'ai-automation', name:'AI Automation Solutions', category:'Artificial Intelligence', description:'Automate repetitive tasks and turn business data into useful workflows and insights.', features:['Workflow automation','AI-assisted tasks','Data insights','System integrations'] },
-  { id:'custom-business-software', name:'Custom Business Software', category:'Custom Development', description:'Purpose-built software designed around your organisation’s processes and requirements.', features:['Requirement discovery','Custom dashboards','Role-based access','API integrations'] }
-];
 
 function getVideoSource(value) {
   if (!value) return null;
@@ -384,37 +419,309 @@ function getVideoSource(value) {
   return null;
 }
 
+function eduCoreContactUrl(options = {}) {
+  const params = new URLSearchParams({ product: 'Zentro EduCore', ...options });
+  return `/contact?${params.toString()}`;
+}
+
+const eduCoreFeatureGroups = [
+  { title:'Learning management system (LMS)', icon:BookOpen, features:['Course creation and management','Video lessons and learning materials','Student enrolment','Batch and classroom management','Assignments and assessments','Online examinations','Results and performance tracking','Certificates and completion records'] },
+  { title:'Customer relationship management (CRM)', icon:Users, features:['Lead management','Student enquiries','Admission management','Follow-up reminders','Sales pipeline','Counsellor management','Communication history','Conversion analytics'] },
+  { title:'Student management', icon:GraduationCap, features:['Student profiles','Attendance management','Course progress','Fee and payment tracking','Student performance reports'] },
+  { title:'Faculty management', icon:CalendarDays, features:['Faculty profiles','Instructor dashboards','Class schedules','Assignment evaluation','Faculty performance reports'] },
+  { title:'Administration & analytics', icon:BarChart3, features:['Central admin dashboard','Role-based access','User management','Revenue and enrolment reports','Learning analytics','Notifications','Activity tracking'] }
+];
+
+const eduCorePackages = [
+  { name:'Starter', description:'A clear starting point for launching core learning and student workflows.', features:['Core LMS','Basic CRM','Student management','Admin dashboard','Standard installation','Basic support'] },
+  { name:'Professional', description:'A branded platform with deeper CRM, faculty tools and reporting.', features:['Everything in Starter','Complete white-label branding','Custom domain','Advanced CRM','Faculty management','Analytics and reporting','Additional integrations','Priority support'], featured:true },
+  { name:'Enterprise', description:'A tailored rollout for complex workflows, migration and deployment needs.', features:['Everything in Professional','Custom modules','Advanced automation','Data migration','Dedicated deployment options','Advanced access controls','Custom integrations','Dedicated technical support'] }
+];
+
+const eduCoreBrandingOptions = [
+  'Company logo and brand identity','Custom colours and themes','Custom domain or subdomain',
+  'Institution-specific login branding','Custom dashboards','Custom modules and workflows',
+  'Configurable roles and permissions','Custom reports','Existing data migration',
+  'Third-party API integrations'
+];
+
+const eduCoreDeliverySteps = [
+  'Client contacts Zentro Technologies.',
+  'Our technical team understands the existing LMS, CRM and business requirements.',
+  'Client selects Starter, Professional or Enterprise.',
+  'Zentro configures the platform with the client’s branding.',
+  'We install, integrate and migrate existing data where agreed.',
+  'We test the platform and provide administrator training.',
+  'The client launches its own branded learning platform.',
+  'Zentro provides ongoing maintenance and technical support according to the agreement.'
+];
+
+function EduCoreDashboard({ compact = false }) {
+  return <div className={`educore-dashboard${compact ? ' educore-dashboard-compact' : ''}`} aria-label="Illustrative Zentro EduCore dashboard concept">
+    <aside className="educore-dashboard-sidebar">
+      <div className="educore-dashboard-brand"><span><GraduationCap size={17}/></span><b>EDUCORE</b></div>
+      <small>WORKSPACE</small>
+      <div className="educore-dashboard-nav active"><BarChart3 size={15}/>Overview</div>
+      <div className="educore-dashboard-nav"><BookOpen size={15}/>Courses</div>
+      <div className="educore-dashboard-nav"><Users size={15}/>Students</div>
+      <div className="educore-dashboard-nav"><CalendarDays size={15}/>Schedule</div>
+      <div className="educore-dashboard-nav"><Settings2 size={15}/>Settings</div>
+    </aside>
+    <div className="educore-dashboard-main">
+      <div className="educore-dashboard-top"><div><small>MONDAY, OCTOBER 21</small><b>Learning overview</b></div><span className="educore-dashboard-avatar">A</span></div>
+      <div className="educore-dashboard-welcome"><div><small>GOOD MORNING, ADMIN</small><b>Your institution at a glance.</b></div><span><Search size={14}/></span></div>
+      <div className="educore-dashboard-stats">
+        <div><small>ACTIVE LEARNERS</small><b>2,486</b><i>Across all programmes</i></div>
+        <div><small>COURSES</small><b>38</b><i>12 currently in progress</i></div>
+        <div><small>COMPLETION</small><b>84%</b><i>Learning progress</i></div>
+      </div>
+      <div className="educore-dashboard-panels">
+        <div className="educore-dashboard-chart"><div><b>Enrolment activity</b><small>Last 6 months</small></div><div className="educore-chart-bars">{[38,55,43,72,61,88,68,96,76,83,59,91].map((height,index)=><i key={index} style={{height:`${height}%`}}/>)}</div></div>
+        <div className="educore-dashboard-list"><b>Upcoming sessions</b><span><i/>Foundations of Design<small>Today · 10:30 AM</small></span><span><i/>Business Essentials<small>Today · 01:00 PM</small></span></div>
+      </div>
+      <div className="educore-dashboard-foot"><span><Bell size={13}/> Dashboard preview · sample content</span><small>Illustrative concept</small></div>
+    </div>
+  </div>;
+}
+
+function ProductDashboardPreview({ product }) {
+  const initials = product.name.replace('Zentro ', '').slice(0, 2).toUpperCase();
+  return <div className="product-preview-dashboard" role="img" aria-label={`Illustrative ${product.name} software dashboard concept`}>
+    <aside>
+      <div className="product-preview-brand"><span>{initials}</span><b>{product.name.replace('Zentro ', '')}</b></div>
+      {['Overview','Operations','Records','Reports','Settings'].map((item,index)=><span className={index===0?'active':''} key={item}><i></i>{item}</span>)}
+    </aside>
+    <div className="product-preview-main">
+      <div className="product-preview-top"><div><small>{product.category.toUpperCase()}</small><b>{product.name} overview</b></div><span>AD</span></div>
+      <div className="product-preview-kpis">{['Records','Activities','Progress'].map((label,index)=><div key={label}><small>{label.toUpperCase()}</small><b>{['1,284','86','92%'][index]}</b><i>Concept data</i></div>)}</div>
+      <div className="product-preview-content">
+        <div className="product-preview-chart"><b>Operational activity</b><div>{[42,58,38,72,64,88,70,92].map((height,index)=><i key={index} style={{height:`${height}%`}}></i>)}</div></div>
+        <div className="product-preview-list"><b>Recent activity</b>{['Workflow updated','Record assigned','Report generated'].map((item,index)=><span key={item}><i></i><b>{item}</b><small>Illustrative activity {index+1}</small></span>)}</div>
+      </div>
+      <small className="product-preview-disclaimer">Concept dashboard preview — not a customer dataset or live product screenshot.</small>
+    </div>
+  </div>;
+}
+
+function ProductDetails() {
+  const { productId } = useParams();
+  const product = zentroProducts.find(item => item.id === productId);
+  React.useEffect(() => {
+    if (!product) return;
+    document.title = `${product.name} — ${product.displayCategory} | Zentro Technologies`;
+    let meta = document.querySelector('meta[name="description"]');
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.name = 'description';
+      document.head.appendChild(meta);
+    }
+    meta.content = `${product.name} ${product.displayCategory}: ${product.tagline} Explore modules, deployment options and request a demo from Zentro Technologies.`;
+  }, [product]);
+  if (!product) return <NotFound />;
+  const contactUrl = `/contact?product=${encodeURIComponent(product.name)}&intent=demo`;
+  const salesUrl = `/contact?product=${encodeURIComponent(product.name)}&intent=sales`;
+  return <>
+    <PageHero eyebrow={`${product.name} · ${product.displayCategory}`} title={<>{product.tagline}</>} text={product.description}/>
+    <section className="section section-light product-detail-overview">
+      <div className="container product-detail-overview-grid">
+        <div>
+          <Eyebrow>{product.category}</Eyebrow>
+          <h2>{product.name}<br/><span className="blue-text">built for real workflows.</span></h2>
+          <p>{product.description}</p>
+          <div className="product-detail-actions"><Link className="button" to={contactUrl}>Request a Demo <ArrowUpRight size={16}/></Link><Link className="text-link" to={salesUrl}>Contact Sales <ArrowRight size={16}/></Link></div>
+        </div>
+        <div className="product-detail-preview"><div className="educore-dashboard-caption"><span></span>ILLUSTRATIVE SOFTWARE UI CONCEPT</div><ProductDashboardPreview product={product}/></div>
+      </div>
+    </section>
+    <section className="section section-navy">
+      <div className="container">
+        <SectionHeading eyebrow="Designed around your operation" title={<>Key benefits.<br/><span className="gradient-text">Clear business value.</span></>} text="An overview of the outcomes the platform is intended to support; final features and deployment scope are confirmed during discovery."/>
+        <div className="product-benefit-grid">{product.benefits.map((benefit,index)=><article className="product-benefit" key={benefit}><span>0{index+1}</span><h3>{benefit}</h3></article>)}</div>
+        <div className="product-targets"><span>Designed for</span>{product.targets.map(target=><b key={target}>{target}</b>)}</div>
+      </div>
+    </section>
+    <section className="section section-light">
+      <div className="container">
+        <SectionHeading eyebrow="Platform modules" title={<>Detailed capabilities.<br/><span className="blue-text">One connected ecosystem.</span></>} text="Modules below describe the proposed solution scope and may require implementation, integration and configuration for an agreed deployment."/>
+        <div className="product-module-grid">{product.modules.map(([title,features])=><article className="product-module" key={title}><div className="product-module-heading"><span><Layers3 size={19}/></span><h3>{title}</h3></div><ul>{features.map(feature=><li key={feature}><Check size={14}/>{feature}</li>)}</ul></article>)}</div>
+      </div>
+    </section>
+    <section className="section section-navy">
+      <div className="container product-deployment-grid">
+        <div><SectionHeading eyebrow="How it works" title={<>From discovery to<br/><span className="gradient-text">a working rollout.</span></>} text={product.deployment}/></div>
+        <ol className="product-process">{product.process.map((step,index)=><li key={step}><span>0{index+1}</span><p>{step}</p></li>)}</ol>
+      </div>
+    </section>
+    {product.packages && <section className="section section-light"><div className="container"><SectionHeading eyebrow="Deployment packages" title={<>Choose a deployment<br/><span className="blue-text">aligned to your scope.</span></>} text="Fixed prices are not published; Zentro prepares a proposal after requirements review."/><div className="educore-package-grid">{product.packages.map(([name,features],index)=><article className={`educore-package${index===1?' educore-package-featured':''}`} key={name}>{index===1 && <span className="educore-package-badge">POPULAR OPTION</span>}<span className="educore-package-label">{name.toUpperCase()}</span><h3>{name}</h3><strong className="educore-package-price">Contact for Pricing</strong><ul>{features.map(feature=><li key={feature}><Check size={14}/>{feature}</li>)}</ul><Link className={index===1?'button button-full':'button button-outline button-full'} to={`/contact?product=${encodeURIComponent(product.name)}&package=${encodeURIComponent(name)}&intent=proposal`}>Request a Proposal <ArrowUpRight size={15}/></Link></article>)}</div></div></section>}
+    <section className="section section-light">
+      <div className="container educore-faq">
+        <SectionHeading eyebrow="Frequently asked questions" title={<>Good questions.<br/><span className="blue-text">Clear answers.</span></>} text="Implementation details are confirmed with Zentro before delivery."/>
+        <div className="educore-faq-list">{product.faqs.map(([question,answer])=><details key={question}><summary>{question}</summary><p>{answer}</p></details>)}</div>
+      </div>
+    </section>
+    <section className="cta-section"><div className="container cta-box"><div className="cta-glow"></div><div className="cta-copy"><Eyebrow>Discuss your requirements</Eyebrow><h2>Explore {product.name}<br/><span className="gradient-text">for your organisation.</span></h2><p>Share your goals and current processes. Zentro will help identify a suitable scope for discussion.</p><div className="educore-actions"><Link className="button" to={contactUrl}>Request a Demo <ArrowUpRight size={16}/></Link><Link className="educore-cta-secondary" to={salesUrl}>Contact Sales <ArrowRight size={16}/></Link></div></div><div className="cta-mark"><span>Z</span><i></i><i></i></div></div></section>
+  </>;
+}
+
+function EduCoreDetails() {
+  React.useEffect(() => {
+    document.title = 'Zentro EduCore — White-Label LMS & CRM | Zentro Technologies';
+    let meta = document.querySelector('meta[name="description"]');
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.name = 'description';
+      document.head.appendChild(meta);
+    }
+    meta.content = 'Zentro EduCore is a configurable, white-label LMS and CRM platform for educational organisations. Explore modules, packages and deployment options.';
+  }, []);
+  return <>
+    <PageHero eyebrow="Zentro EduCore · White-label LMS & CRM" title={<>Your EdTech Platform.<br/><span className="gradient-text">Ready to Launch.</span></>} text="Stop spending months building your LMS and CRM from scratch. Get a customizable, branded learning management and customer relationship platform installed by Zentro Technologies."/>
+    <section className="section section-light educore-overview">
+      <div className="container educore-overview-grid">
+        <div>
+          <Eyebrow>Your institution. Your brand.</Eyebrow>
+          <h2>Your complete<br/><span className="blue-text">learning ecosystem.</span></h2>
+          <p>Zentro EduCore is a customizable, white-label LMS and CRM platform for EdTech companies, training institutes, coaching centres, universities and educational organisations. We configure and deploy an agreed solution under your brand, instead of asking you to build every system from scratch.</p>
+          <div className="educore-tagline">“Your Institution. Your Brand. Your Complete Learning Ecosystem.”</div>
+          <div className="educore-actions"><Link className="button" to={eduCoreContactUrl({intent:'demo'})}>Request a Demo <ArrowUpRight size={16}/></Link><Link className="text-link" to={eduCoreContactUrl({intent:'sales'})}>Contact Sales <ArrowRight size={16}/></Link></div>
+          <small className="educore-scope-note">Installation, integrations and customization are planned against the scope agreed with your team.</small>
+        </div>
+        <div className="educore-dashboard-wrap"><div className="educore-dashboard-caption"><span></span>ILLUSTRATIVE DASHBOARD CONCEPT</div><EduCoreDashboard/></div>
+      </div>
+    </section>
+    <section className="section section-navy">
+      <div className="container">
+        <SectionHeading eyebrow="Built around your needs" title={<>One connected ecosystem.<br/><span className="gradient-text">A faster path to launch.</span></>} text="Bring learning operations and student relationships together in a platform configured for your organisation."/>
+        <div className="educore-benefit-grid">
+          {[
+            ['Faster deployment','Start with an established platform foundation rather than building every workflow from zero.'],
+            ['Your own company branding','Present a consistent learning experience with your logo, identity, theme and domain.'],
+            ['LMS and CRM together','Connect courses, student enquiries, admissions and follow-up workflows.'],
+            ['Custom modules and workflows','Shape agreed capabilities around how your teams work.'],
+            ['Integration with existing systems','Review and scope the APIs and third-party connections your organisation needs.'],
+            ['Scalable architecture','Plan a deployment that can grow with your learners, programmes and operational needs.'],
+            ['Ongoing technical support','Agree maintenance and technical support for your rollout and ongoing operation.']
+          ].map(([title,text],index)=><article className="educore-benefit" key={title}><span>0{index+1}</span><h3>{title}</h3><p>{text}</p></article>)}
+        </div>
+      </div>
+    </section>
+    <section className="section section-light">
+      <div className="container">
+        <SectionHeading eyebrow="Platform capabilities" title={<>The tools to run<br/><span className="blue-text">your learning business.</span></>} text="Capabilities are configured to the selected package and confirmed implementation scope."/>
+        <div className="educore-feature-grid">
+          {eduCoreFeatureGroups.map(({title,icon:Icon,features})=><article className="educore-feature-card" key={title}><div className="educore-feature-heading"><span><Icon size={20}/></span><h3>{title}</h3></div><ul>{features.map(feature=><li key={feature}><Check size={14}/>{feature}</li>)}</ul></article>)}
+        </div>
+      </div>
+    </section>
+    <section className="section section-navy educore-whitelabel">
+      <div className="container educore-whitelabel-grid">
+        <div><SectionHeading eyebrow="White-label by design" title={<>A platform that feels<br/><span className="gradient-text">like your own.</span></>} text="EduCore is configured around your institution’s identity and agreed operating model. The exact design, domain, modules and integrations are defined during discovery."/></div>
+        <div className="educore-branding-panel"><div className="educore-branding-preview"><span className="educore-brand-symbol">A</span><div><b>Your Academy</b><small>YOUR LEARNING SPACE</small></div><span className="educore-brand-domain">learn.youracademy.com</span></div><ul>{eduCoreBrandingOptions.map(item=><li key={item}><Check size={14}/>{item}</li>)}</ul></div>
+      </div>
+      <div className="container"><div className="educore-isolation-note"><ShieldCheck size={19}/><p><b>Customer-specific configuration and data isolation:</b> institution boundaries, access controls and deployment choices are treated as implementation requirements and confirmed and tested for the agreed scope before launch.</p></div></div>
+    </section>
+    <section className="section section-light">
+      <div className="container">
+        <div className="educore-pricing-heading"><SectionHeading eyebrow="Deployment packages" title={<>Choose the right<br/><span className="blue-text">way to get started.</span></>} text="Every deployment is scoped with your team. Contact us for package pricing and a proposal tailored to your requirements."/></div>
+        <div className="educore-package-grid">
+          {eduCorePackages.map(plan=><article className={`educore-package${plan.featured?' educore-package-featured':''}`} key={plan.name}>
+            {plan.featured && <span className="educore-package-badge">MOST POPULAR</span>}
+            <span className="educore-package-label">{plan.name.toUpperCase()}</span><h3>{plan.name}</h3><p>{plan.description}</p>
+            <strong className="educore-package-price">Contact for Pricing</strong>
+            <ul>{plan.features.map(feature=><li key={feature}><Check size={14}/>{feature}</li>)}</ul>
+            <Link className={plan.featured?'button button-full':'button button-outline button-full'} to={eduCoreContactUrl({package:plan.name,intent:'proposal'})}>Request a Proposal <ArrowUpRight size={15}/></Link>
+          </article>)}
+        </div>
+      </div>
+    </section>
+    <section className="section section-navy">
+      <div className="container"><SectionHeading eyebrow="From discovery to launch" title={<>A clear path from idea<br/><span className="gradient-text">to your branded platform.</span></>} text="We align delivery with your existing systems, selected package and agreed scope."/>
+        <ol className="educore-process-grid">{eduCoreDeliverySteps.map((step,index)=><li key={step}><span>0{index+1}</span><p>{step}</p></li>)}</ol>
+        <p className="educore-process-note">Installation, migration, integrations and customization depend on the scope agreed with your team.</p>
+      </div>
+    </section>
+    <section className="section section-light">
+      <div className="container educore-faq">
+        <SectionHeading eyebrow="Frequently asked questions" title={<>Good questions.<br/><span className="blue-text">Clear answers.</span></>} text="We’ll confirm the details that matter for your institution during discovery."/>
+        <div className="educore-faq-list">
+          <details><summary>Can EduCore be launched under our company brand?</summary><p>Yes. Branding such as logo, theme, login experience and domain can be scoped for your deployment. The final configuration depends on the selected package and agreed scope.</p></details>
+          <details><summary>Can you migrate our existing LMS or CRM data?</summary><p>Data migration can be included when agreed. Our team first reviews the available data, format, quality and migration requirements to determine the appropriate scope.</p></details>
+          <details><summary>Can EduCore connect to our existing systems?</summary><p>Potential integrations are reviewed during discovery. Availability, effort and delivery are confirmed based on the third-party system and its API capabilities.</p></details>
+          <details><summary>How is customer data kept separate?</summary><p>Institution-specific data boundaries and access controls are defined as deployment requirements and validated as part of the agreed implementation. The hosting and isolation model is confirmed during technical discovery.</p></details>
+          <details><summary>How much does a package cost and how long does setup take?</summary><p>There are no fixed prices or universal timelines. Contact Zentro for a proposal; pricing and schedule depend on the selected package, integrations, migration and customization scope.</p></details>
+        </div>
+      </div>
+    </section>
+    <section className="cta-section"><div className="container cta-box"><div className="cta-glow"></div><div className="cta-copy"><Eyebrow>Bring your learning ecosystem together</Eyebrow><h2>Ready to explore<br/><span className="gradient-text">your EduCore rollout?</span></h2><p>Tell us about your institution, existing systems and launch goals. We’ll help shape the right proposal.</p><div className="educore-actions"><Link className="button" to={eduCoreContactUrl({intent:'demo'})}>Request a Demo <ArrowUpRight size={16}/></Link><Link className="educore-cta-secondary" to={eduCoreContactUrl({intent:'sales'})}>Contact Sales <ArrowRight size={16}/></Link></div></div><div className="cta-mark"><span>Z</span><i></i><i></i></div></div></section>
+  </>;
+}
+
 function ProductDemos() {
   const [selected, setSelected] = useState('all');
+  const [query,setQuery] = useState('');
   const [products,setProducts] = useState(demoProducts);
+  const navigate = useNavigate();
   React.useEffect(() => {
     let active = true;
     api.products.list().then(data => {
       if (!active || !Array.isArray(data) || data.length === 0) return;
-      setProducts(data.map(product => {
-        const fallback = demoProducts.find(item => item.id === product.id);
-        return {
+      const availableProducts = demoProducts.map(fallback => {
+        const published = data.find(item => item.id === fallback.id || item.name === fallback.name);
+        return published ? {
           ...fallback,
-          ...product,
-          video: product.video || fallback?.video || '',
-          features: product.features?.length ? product.features : fallback?.features || []
-        };
-      }));
+          ...published,
+          video: published.video || fallback.video || '',
+          features: published.features?.length ? published.features : fallback.features
+        } : fallback;
+      });
+      data.forEach(product => {
+        if (!availableProducts.some(item => item.id === product.id || item.name === product.name)) {
+          availableProducts.push(product);
+        }
+      });
+      setProducts(availableProducts);
     }).catch(error => console.warn('Product API unavailable; using the existing product demo content.', error));
     return () => { active = false; };
   }, []);
   const categories = ['all', ...new Set(products.map(p=>p.category))];
-  const visible = selected === 'all' ? products : products.filter(p=>p.category === selected);
+  const visible = products.filter(product => {
+    const categoryMatch = selected === 'all' || product.category === selected;
+    const haystack = `${product.name} ${product.category} ${product.description} ${(product.features || []).join(' ')}`.toLowerCase();
+    return categoryMatch && haystack.includes(query.trim().toLowerCase());
+  });
   return <>
     <PageHero eyebrow="Product demo center" title={<>See what technology<br/><span className="gradient-text">can do for your business.</span></>} text="Explore our software solutions and product workflows. Select a product to view its demo video, key capabilities and request a walkthrough with the Zentro team."/>
     <section className="section section-light"><div className="container">
-      <div className="demo-intro"><div><Eyebrow>Explore our solutions</Eyebrow><h2>One place for every product demo.</h2><p>Published product demos appear here when available.</p></div><Link to="/contact" className="button">Request a live demo <ArrowUpRight size={16}/></Link></div>
+      <div className="demo-intro"><div><Eyebrow>Explore our solutions</Eyebrow><h2>One ecosystem for every operation.</h2><p>Search or filter the Zentro product ecosystem.</p></div><Link to="/contact" className="button">Request a live demo <ArrowUpRight size={16}/></Link></div>
+      <div className="product-discovery-search"><Search size={16}/><input type="search" value={query} onChange={event=>setQuery(event.target.value)} placeholder="Search products, categories or capabilities" aria-label="Search Zentro products"/></div>
       <div className="demo-filters">{categories.map(c=><button key={c} className={selected===c?'active':''} onClick={()=>setSelected(c)}>{c==='all'?'All products':c}</button>)}</div>
       <div className="demo-grid">{visible.map((product,i)=>{
         const source = getVideoSource(product.video || '');
-        return <motion.article className="demo-card" key={product.id} initial={{opacity:0,y:20}} whileInView={{opacity:1,y:0}} viewport={{once:true}} transition={{delay:(i%4)*.05}}>
-          <div className="demo-player">{source?.type==='file' ? <video controls preload="metadata" src={source.url} poster={product.demos?.[0]?.thumbnail || product.image || undefined} /> : source?.type==='embed' ? <iframe src={source.url} title={`${product.name} demo video`} loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen /> : <div className="demo-placeholder"><span><PlayCircle size={34}/></span><b>Demo video coming soon</b><small>Add an MP4, WebM, YouTube or Vimeo link to enable playback.</small></div>}</div>
-          <div className="demo-card-body"><div className="demo-meta"><span>{product.category}</span><small>PRODUCT DEMO {String(products.indexOf(product)+1).padStart(2,'0')}</small></div><h3>{product.name}</h3><p>{product.description}</p><div className="demo-features">{product.features.map(f=><span key={f}><Check size={13}/>{f}</span>)}</div><Link className="button button-full" to={`/contact?product=${encodeURIComponent(product.name)}`}>Request this product demo <ArrowUpRight size={16}/></Link></div>
+        const isEduCore = product.id === 'zentro-educore';
+        const ecosystemProduct = zentroProducts.find(item => item.id === product.id || item.name === product.name);
+        const detailPath = ecosystemProduct ? `/products/${ecosystemProduct.id}` : null;
+        return <motion.article
+          className={`demo-card${detailPath?' demo-card-clickable':''}`}
+          key={product.id}
+          initial={{opacity:0,y:20}}
+          whileInView={{opacity:1,y:0}}
+          viewport={{once:true}}
+          transition={{delay:(i%4)*.05}}
+          role={detailPath?'link':undefined}
+          tabIndex={detailPath?0:undefined}
+          aria-label={detailPath?`Explore ${product.name} product details`:undefined}
+          onClick={detailPath ? event => {
+            if (!event.target.closest('a,button,video,iframe')) navigate(detailPath);
+          } : undefined}
+          onKeyDown={detailPath ? event => {
+            if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
+              event.preventDefault();
+              navigate(detailPath);
+            }
+          } : undefined}
+        >
+          <div className="demo-player">{isEduCore ? <EduCoreDashboard compact/> : ecosystemProduct ? <div className="ecosystem-card-preview"><span>{ecosystemProduct.name.replace('Zentro ','').slice(0,2).toUpperCase()}</span><b>{ecosystemProduct.name}</b><small>ILLUSTRATIVE DASHBOARD CONCEPT</small></div> : source?.type==='file' ? <video controls preload="metadata" src={source.url} poster={product.demos?.[0]?.thumbnail || product.image || undefined} /> : source?.type==='embed' ? <iframe src={source.url} title={`${product.name} demo video`} loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen /> : <div className="demo-placeholder"><span><PlayCircle size={34}/></span><b>Demo video coming soon</b><small>Add an MP4, WebM, YouTube or Vimeo link to enable playback.</small></div>}</div>
+          <div className="demo-card-body"><div className="demo-meta"><span>{product.category}</span><small>PRODUCT DEMO {String(products.indexOf(product)+1).padStart(2,'0')}</small></div><h3>{product.name}</h3><p>{product.description}</p><div className="demo-features">{(product.features || []).slice(0,4).map(f=><span key={f}><Check size={13}/>{f}</span>)}</div>{detailPath && <Link className="button button-full button-outline" to={detailPath}>Explore {ecosystemProduct?.name.replace('Zentro ','') || product.name} <ArrowRight size={16}/></Link>}<Link className="button button-full" to={`/contact?product=${encodeURIComponent(product.name)}&intent=demo`}>Request a Demo <ArrowUpRight size={16}/></Link></div>
         </motion.article>;
       })}</div>
     </div></section>
@@ -426,6 +733,6 @@ function NotFound() { return <PageHero eyebrow="404 — Page not found" title={<
 
 export default function App() {
   return <PageShell><AnimatePresence mode="wait"><Routes>
-    <Route path="/" element={<Home/>}/><Route path="/about" element={<About/>}/><Route path="/services" element={<Services/>}/><Route path="/industries" element={<Industries/>}/><Route path="/portfolio" element={<Portfolio/>}/><Route path="/products" element={<ProductDemos/>}/><Route path="/careers" element={<Careers/>}/><Route path="/contact" element={<Contact/>}/><Route path="*" element={<NotFound/>}/>
+    <Route path="/" element={<Home/>}/><Route path="/about" element={<About/>}/><Route path="/services" element={<Services/>}/><Route path="/industries" element={<Industries/>}/><Route path="/portfolio" element={<Portfolio/>}/><Route path="/products" element={<ProductDemos/>}/><Route path="/products/zentro-educore" element={<EduCoreDetails/>}/><Route path="/products/:productId" element={<ProductDetails/>}/><Route path="/careers" element={<Careers/>}/><Route path="/contact" element={<Contact/>}/><Route path="*" element={<NotFound/>}/>
   </Routes></AnimatePresence></PageShell>;
 }

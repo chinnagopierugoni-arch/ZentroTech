@@ -115,7 +115,7 @@ router.get('/enquiries', parseQuery(listQuerySchema), asyncHandler(async (req, r
     .order('created_at', { ascending: false }).range(from, from + pageSize - 1);
   if (status) query = query.eq('status', status);
   const term = search?.replace(/[^\p{L}\p{N}@+.\-\s]/gu, '').trim();
-  if (term) query = query.or(['full_name', 'email', 'company', 'service', 'message'].map(key => `${key}.ilike.%${term}%`).join(','));
+  if (term) query = query.or(['full_name', 'email', 'company', 'service', 'selected_product', 'selected_package', 'message'].map(key => `${key}.ilike.%${term}%`).join(','));
   const { data, error, count } = await query;
   if (error) throw new HttpError(502, 'Unable to load enquiries.', 'database_error');
   res.json({ data, page, pageSize, total: count || 0 });
