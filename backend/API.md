@@ -1,6 +1,6 @@
 # Zentro API
 
-Base URL: `http://localhost:5000/api`
+Base URL: `/api` on Vercel or `http://localhost:5000/api` in a direct backend setup. The frontend uses same-origin `/api` routing by default.
 
 Successful responses use `{ "data": ... }` unless the status is `204`. Errors use `{ "error": { "code": "...", "message": "..." } }`. Request bodies are JSON except multipart file uploads.
 

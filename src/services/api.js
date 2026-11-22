@@ -1,6 +1,6 @@
 import { getAccessToken } from '../lib/supabase';
 
-const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api').replace(/\/+$/, '');
+const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/+$/, '');
 
 async function request(path, { body, headers = {}, ...options } = {}) {
   const requestHeaders = new Headers(headers);
@@ -13,12 +13,20 @@ async function request(path, { body, headers = {}, ...options } = {}) {
     requestBody = JSON.stringify(body);
   }
 
-  const response = await fetch(`${apiBaseUrl}${path}`, {
-    ...options,
-    headers: requestHeaders,
-    body: requestBody,
-    credentials: 'include'
-  });
+  let response;
+  try {
+    response = await fetch(`${apiBaseUrl}${path}`, {
+      ...options,
+      headers: requestHeaders,
+      body: requestBody,
+      credentials: 'include'
+    });
+  } catch {
+    const error = new Error('Unable to reach the server. Check your connection and try again.');
+    error.status = 0;
+    error.code = 'network_error';
+    throw error;
+  }
   const result = response.status === 204 ? null : await response.json().catch(() => null);
   if (!response.ok) {
     const error = new Error(result?.error?.message || `Request failed (${response.status}).`);
